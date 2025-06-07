@@ -20,7 +20,7 @@ function sendLatestFormResponse() {
   Logger.log('Constructed JSON payload: ' + JSON.stringify(payload, null, 2));
 
   // Send to AWS API Gateway
-  const url = 'https://oxv1r7xn0g.execute-api.us-east-1.amazonaws.com/sales-inventory-lambda-function'; // Replace with your actual endpoint
+  const url = 'AWS-API-GATEWAY-endpoint/lambda-route'; // Replace with your actual endpoint
   const options = {
     method: 'POST',
     contentType: 'application/json',
