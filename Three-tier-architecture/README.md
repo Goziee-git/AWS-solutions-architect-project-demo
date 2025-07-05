@@ -31,7 +31,6 @@
 - Make sure the ```Network-border-group``` is the same as the region you've been creating your resources and Leave all other settings as default then press ```“Allocate”```. You can optionally add a name tag if you wish though this is not necessary
 ![elastic-ip](images/elastic-ip.png)
 **INTERNET GATEWAY**
-🛜![internet](images/image.png)
 - Now create an internet gateway and attach it to the VPC by going to Internet Gateways on the left hand side and clicking ```“Create Internet Gateway”```
 - After creating the Internet Gateway, at the upper right corner, click on actions, in the drop-down menu, choose ```Attach VPC``` and select the VPC for your resources, click on the yellow button selecting```Attach Internet Gateway```.
 ![internet-gateway](images/internet-gateway.png)
@@ -47,4 +46,42 @@
 - Create Route Tables by first heading to “Route Tables” on the left hand side
 - Click ```Create route table```, Name the route table ```my-route-table```, select the VPC you've been using for your resources and hit the yellow button to ```Create Route table```
 - Make a second route table naming it ```Private-route-table``` and assign your VPC to it.
+- Now associate your subnets with their respective route table
+- Click on the public route table and click on ```Subnet association``` next to “Details”
+- Click on ```Edit subnet associations``` and select the ```Public-Subnet``` created, select ```Associate Subnet`` to associate the public route table with the public subnet
+- Do same for the private route table, associate it with the private subnets created earlier
+- Now add a route to our public route table to get access to the internet gateway
+- Click on ```Routes``` next to ```Details``` and click ```Edit routes```
+- Add a new route having a destination of anywhere ```0.0.0.0``` and a target of your ```internet gateway``` with your ```Internet-gateway-ID``` and click ```Save changes```
+- To edit routes for the private table, Go to edit the routes of the private table
+- Add a route to the private table that has a destination of anywhere and a target of your Nat gateway that you made earlier
+
+🔐 **SECURITY GROUPS**
+- Now to create our security groups (One for our bastion host, web server, app server, and our database) we will head to Security Groups on the left and click ```Create security group```
+- Give it a name and description letting you know it is for a bastion host
+- Assign your VPC to it by selecting your VPC-ID in the VPC section
+- add the following ```inbound rules``` to the bastion host security group
+   ***HTTP: TCP/80 : 0.0.0.0/0 (anywhere)
+   HTTPS: TCP/443 : 0.0.0.0/0 (anywhere)
+   SSH: TCP/22 : 0.0.0.0/0 (anywhere)***
+![bastion-host](images/bastion-host-sg.png)
+
+
+- Create another security group ```web-server-security-group```
+- Give it a description letting you know it is for a Web server
+- Assign your VPC to it
+- Give it the same inbound rules as the Bastion Host security group
+![webserver-sg](images/webserver-sg.png)
+
+- Create another security group
+- Give it a name ```app-server-security-group``` and description letting you know it is for an app server
+- Assign your VPC to it
+- Give it an inbound rule for All ICMP-IPv4 with a source of your web server SG and another inbound rule for SSH with a source of your bastion host SG
+- Create one final security group 
+- Give it a name ```db-sg``` description letting you know it is for a database server
+- Assign your VPC to it
+- Give it two inbound rules both for MYSQL/Aurora and give one of them a source of your app server SG and the other one a source of your bastion host SG
+- Go back to your bastion host inbound rules and add one more for MYSQL/Aurora and a source of your database SG
+- Go back to your web server inbound rules and add one more for All ICMP - IPv4 and a source of your app server SG
+Go back to your app server inbound rules and add one more for MYSQL/Aurora and a source of your database SG and then an HTTP and HTTPS rule both with a source of 0.0.0.0/0
 
