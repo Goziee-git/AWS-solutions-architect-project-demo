@@ -43,7 +43,7 @@ function sendToAPIGateway(e) {
     payload: JSON.stringify(data)
   };
 
-  const url = 'https://oxv1r7xn0g.execute-api.us-east-1.amazonaws.com/sales-inventory-lambda-function';
+  const url = 'API-GATWWAY-endpoint-url/lambda-route';
 
   UrlFetchApp.fetch(url, options);
 }
