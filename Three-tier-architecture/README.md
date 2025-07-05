@@ -81,6 +81,8 @@
 - Give it a name ```db-sg``` description letting you know it is for a database server
 - Assign your VPC to it
 - Give it two inbound rules both for MYSQL/Aurora and give one of them a source of your app server SG and the other one a source of your bastion host SG
+
+![db-sg](images/db-sg.png)
 - Go back to your bastion host inbound rules and add one more for MYSQL/Aurora and a source of your database SG
 - Go back to your web server inbound rules and add one more for All ICMP - IPv4 and a source of your app server SG
 Go back to your app server inbound rules and add one more for MYSQL/Aurora and a source of your database SG and then an HTTP and HTTPS rule both with a source of 0.0.0.0/0
