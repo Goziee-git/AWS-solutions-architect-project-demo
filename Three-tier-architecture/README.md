@@ -85,5 +85,64 @@
 ![db-sg](images/db-sg.png)
 - Go back to your bastion host inbound rules and add one more for MYSQL/Aurora and a source of your database SG
 - Go back to your web server inbound rules and add one more for All ICMP - IPv4 and a source of your app server SG
-Go back to your app server inbound rules and add one more for MYSQL/Aurora and a source of your database SG and then an HTTP and HTTPS rule both with a source of 0.0.0.0/0
+- Go back to your app server inbound rules and add one more for MYSQL/Aurora and a source of your database SG and then an HTTP and HTTPS rule both with a source of 0.0.0.0/0
+![app-server-sg](images/app-server-sg.png)
 
+## Step 2: CREATING SERVERS
+- Create The Bastion Host Servers, Go to the Management Console and search for EC2, Go to EC2 Dashboard and select ```Launch Instance```
+- Name your EC2 Instance ```Bastion-Host-Server``` or any prefared name you choose
+- Select AMI ```AMAZON LINUX 2 AMI``` , and choose the ```t2-micro``` instance type which is free-tier eligible
+- edit ```Network Settings```, choose the VPC which you created for the project,
+- choose the public subnet as the subnet for the bastion host server and **Enable** ```Auto-Assign-public-IP```
+- for the firewall and security group, choose ```select existing security group``` and select the bastion host sg which we created earlier
+- leave advanced network configuration, configure storage, and advanced details as default and hit the yellow button ```launch server``` to create the bastion host server
+
+![bastion-host-server](images/bastion-host-server.png)
+
+### TESTING OUR BASTION HOST SERVER
+ having enabled ssh connections to our bastion host server and also created an inbound rule allowing for ssh communication to bastion host server, retrieve the public ip address of the server and attempt an ssh connection to test for connectivity.
+ - use the command
+  ```bash 
+  ssh -i <key-pair.pem> ec2-user@<public-ip-address-of-server>
+  ```
+  - terminal output should look like this 🎉🎉🎉🎉
+  ![bastion-terminal](images/bastion-terminal.png)
+
+  - launch another instane and name it ```web-server```, choose the same AMI as the previous instance, use the **existing** key-pair created for the bastion-host-server,
+  - in the network settings, click on ```edit``` and choose the vpc which we created for our project, choose the public subnet same as the bastion host server
+  - choose enable to auto-assign-public ip address, select from the ```existing security groups``` the web-server-security-group which we created before
+  - leave ```configure storage``` as default
+  - expand the  ```advanced details``` section and scroll down to app-data. we will add the following script to the ec2 at launch time
+```
+#!/bin/bash 
+yum update -y
+amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2
+yum install -y httpd
+systemctl start httpd
+systemctl enable httpd
+```
+here is a detailed instruction of what the above commands will do:
+1. **#!/bin/bash** - This is called a shebang line that tells the system to use the bash shell interpreter to execute the script.
+
+2. **yum update -y** - Updates all installed packages on the Amazon Linux system to their latest versions. The -y flag automatically answers "yes" to any prompts,
+preventing the command from waiting for user input.
+
+3. **amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2** - Installs the LAMP (Linux, Apache, MariaDB, PHP) stack components from the Amazon Linux 
+Extras repository. Specifically, it installs MariaDB 10.2 and PHP 7.2. The -y flag automatically confirms all prompts.
+
+4. **yum install -y httpd** - Installs the Apache HTTP server (web server) package. The -y flag automatically confirms the installation without prompting.
+
+5. **systemctl start httpd** - Starts the Apache HTTP server service immediately.
+
+6. **systemctl enable httpd** - Configures the Apache HTTP server to automatically start whenever the system boots up.
+
+__*This script will work properly in EC2 user data without requiring password prompts because EC2 user data scripts run with root privileges during instance 
+initialization*__
+
+![webserver](images/web-server.png)
+
+- test for connectivity to your ec2 instance. follow the previous steps to test for SSH connectivity to the instance. 
+- inside the instance you can do the command to see the services you installed running ```systemctl list-units --all | grep httpd```
+![web-server-terminal](images/web-server-terminal.png)
+- you can also attempt to reach the server over the browser using the public ip address of the web-server. This will give you the outcome __**It Works**__
+![web-server-browser](images/web-server-browser.png)
