@@ -146,3 +146,59 @@ initialization*__
 ![web-server-terminal](images/web-server-terminal.png)
 - you can also attempt to reach the server over the browser using the public ip address of the web-server. This will give you the outcome __**It Works**__
 ![web-server-browser](images/web-server-browser.png)
+
+- follow the steps again to create the app-server
+- choose the VPC for our Project
+- choose the ```Private-subnet-1``` as our subnet, 
+- **Disable** ```auto-assign-public-ip-address```
+- Bootstrap the instance using this app data script
+```bash
+#!/bin/bash
+sudo yum install -y mariadb-server
+sudo service mariadb start 
+```
+here is a detailed instruction of what the command does
+1. sudo yum install -y mariadb-server
+   • **sudo:** Executes the command with superuser/administrator privileges
+   • **yum:** The package manager used in RHEL-based Linux distributions
+   • **install:** The yum subcommand to install packages
+   • **-y**: Automatically answers "yes" to any prompts during installation
+   • **mariadb-server:** The package name for MariaDB database server
+
+  This command installs the MariaDB database server software on your system. MariaDB is an open-source relational database that's a fork of MySQL.
+
+2. sudo service mariadb start
+   • **sudo:** Executes the command with superuser privileges
+   • **service:** A command used to run a System V init script
+   • **mariadb:** The name of the service to manage
+   • **start:** The action to perform on the service
+
+  This command starts the MariaDB database service, making the database server active and ready to accept connections.
+
+After running these commands:
+• MariaDB server will be installed on your system
+• The MariaDB service will be running
+• You can connect to the database using the MySQL client
+• By default, the database will be accessible on localhost (127.0.0.1) on port 3306
+
+- Select an existing security group and select the ```app- server-sg```
+- Just like before launch and use the existing keypair ```bastion-key.pem```
+
+### connecting to the instance in the private subnet through the bastion host for testing
+#### Step 1: 
+To securely connect to the app-server in the private subnet via the bastion-host, **firstly** one method we can use is to copy our private keys from our local machine to the bastion-server using the following command
+```scp -i /path/to/key-pair.pem /path/to/key-pair.pem ec2-user@<bastion-host-public-ip>:~/.ssh/```
+
+• scp: Secure Copy Protocol command, used for transferring files between hosts
+• -i /path/to/key-pair.pem: Specifies the identity file (private key) to use for authenticating to the bastion host, replace ```/path/to/key-pair.pem``` with the actual path to your key file (e.g., ~/.ssh/bastion-key.pem)
+• /path/to/key-pair.pem: The source file you want to copy (your private key file). This is the same key file you're using for authentication
+• ec2-user@<bastion-host-public-ip>: The username and public IP address of the bastion host replace ```<bastion-host-public-ip>``` with the actual public IP (e.g., 54.123.45.67)
+• :~/.ssh/: The destination directory on the bastion host where the file will be copied, ```~/.ssh/``` refers to the .ssh directory in the home directory of the ec2-user
+
+__*note*__ Ensure to set your key.pem file with the right permissions ```400``` or  ```600``` is ok for this purpose, so ```chmod 400 key.pem```
+see here!!
+![key-to-bastion](images/key-to-bastion.png)
+
+### Step 2:
+connect to the private instance (app-server) in the private subnet from the bastion host with the command ``` ssh -i ~/.ssh/key-pair.pem ec2-user@<private-instance-private-ip>```
+
