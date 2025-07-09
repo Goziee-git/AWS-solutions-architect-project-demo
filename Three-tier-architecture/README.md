@@ -1,10 +1,54 @@
-## THREE TIER ARCHITECTURE PROJECT
+### THREE TIER ARCHITECTURE PROJECT
 
-# WHAT IS A THREE-TIER-ARCHITECTURE
+### WHAT IS A THREE-TIER-ARCHITECTURE
+***A three-tier architecture in AWS is a traditional software application architecture that separates an application into three logical and physical computing tiers***
 
-### PRE-REQUISITES
+1. __Presentation Tier (Web Tier)__
+   • The user interface and communication layer where users interact with the application
+   • Typically implemented using web servers (EC2 instances with Apache/Nginx)
+   • Placed in public subnets with internet access
+   • Protected by security groups allowing HTTP/HTTPS traffic
 
-### STEP1 : CREATE A VPC AND SUBNET AS WELL AS ROUTING AND SECURITY GROUPS FOR YOUR WORKLOAD
+2. __Application Tier (Logic Tier)__
+   • Contains the business logic that processes user inputs
+   • Implemented using application servers (EC2 instances running your application code)
+   • Placed in private subnets without direct internet access
+   • Communicates with both the web tier and database tier
+   • Protected by security groups allowing specific traffic from the web tier
+
+3. __Data Tier (Database Tier)__
+   • Stores and manages application data
+   • Implemented using database services like Amazon RDS, Aurora, or DynamoDB
+   • Placed in private subnets without direct internet access
+   • Protected by security groups allowing only database traffic from the application tier
+
+__Key AWS components typically used in a three-tier architecture:__
+-  VPC with public and private subnets across multiple Availability Zones
+- Internet Gateway for public internet access
+- NAT Gateway for private subnets to access the internet
+- Route tables to control traffic flow
+- Security groups and NACLs for access control
+- Load balancers (ELB/ALB) for distributing traffic
+- Auto Scaling groups for handling varying loads
+
+__Benefits of this architecture include:__
+- Improved security through isolation
+- Better scalability by scaling tiers independently
+- Higher availability with multi-AZ deployments
+- Easier maintenance as components can be updated separately
+- Cost optimization by right-sizing each tier
+
+![three-tier-architecture](images/three-tier-architecture.png.png)
+
+
+
+#### PRE-REQUISITES
+- Knowledge of AWS services (AWS EC2, AWS VPC, AWS ENI, Internet Gateway, Route Tables, Subnet, Security Groups, AWS RDS)
+- Basic knowledge of Linux
+- AmazonQ  
+
+__STEP1__
+#### CREATE A VPC AND SUBNET AS WELL AS ROUTING AND SECURITY GROUPS FOR YOUR WORKLOAD
 - Go to “Your VPCs” from the VPC service on the AWS management console and click on the orange “Create VPC” button
 - create a vpc here and give it a name. You are free to make your own name or follow along with the one put here. choose ```vpc only```
 - Give it a ```192.168.0.0/16``` CIDR block.
@@ -12,7 +56,9 @@
 - Leave Tenancy as ```Default```
 - optionaly choose a Tag
 - click on the orange button to create VPC
+
 ![vpc-image](images/vpc.png)
+
 **CREATING SUBNETS**
 - To create your subnets go to Subnets on the left hand side of the VPC service and click on it
 - Add your VPC ID to where it asks ```$(VPC-ID)```
@@ -71,6 +117,7 @@
 - Give it a description letting you know it is for a Web server
 - Assign your VPC to it
 - Give it the same inbound rules as the Bastion Host security group
+
 ![webserver-sg](images/webserver-sg.png)
 
 - Create another security group
@@ -86,6 +133,7 @@
 - Go back to your bastion host inbound rules and add one more for MYSQL/Aurora and a source of your database SG
 - Go back to your web server inbound rules and add one more for All ICMP - IPv4 and a source of your app server SG
 - Go back to your app server inbound rules and add one more for MYSQL/Aurora and a source of your database SG and then an HTTP and HTTPS rule both with a source of 0.0.0.0/0
+
 ![app-server-sg](images/app-server-sg.png)
 
 ## Step 2: CREATING SERVERS
@@ -100,20 +148,26 @@
 ![bastion-host-server](images/bastion-host-server.png)
 
 ### TESTING OUR BASTION HOST SERVER
- having enabled ssh connections to our bastion host server and also created an inbound rule allowing for ssh communication to bastion host server, retrieve the public ip address of the server and attempt an ssh connection to test for connectivity.
- - use the command
+having enabled ssh connections to our bastion host server and also created an inbound rule allowing for ssh communication to bastion host server, retrieve the public ip address of the server and attempt an ssh connection to test for connectivity.
+- use the command
   ```bash 
   ssh -i <key-pair.pem> ec2-user@<public-ip-address-of-server>
   ```
-  - terminal output should look like this 🎉🎉🎉🎉
-  ![bastion-terminal](images/bastion-terminal.png)
+- terminal output should look like this 🎉🎉🎉🎉
 
-  - launch another instane and name it ```web-server```, choose the same AMI as the previous instance, use the **existing** key-pair created for the bastion-host-server,
-  - in the network settings, click on ```edit``` and choose the vpc which we created for our project, choose the public subnet same as the bastion host server
-  - choose enable to auto-assign-public ip address, select from the ```existing security groups``` the web-server-security-group which we created before
-  - leave ```configure storage``` as default
-  - expand the  ```advanced details``` section and scroll down to app-data. we will add the following script to the ec2 at launch time
-```
+![bastion-terminal](images/bastion-terminal.png)
+
+- launch another instane and name it ```web-server```, choose the same AMI as the previous instance, use the **existing** key-pair created for the bastion-host-server
+
+- in the network settings, click on ```edit``` and choose the vpc which we created for our project, choose the public subnet same as the bastion host server
+
+- choose enable to auto-assign-public ip address, select from the ```existing security groups``` the web-server-security-group which we created before
+
+- leave ```configure storage``` as default
+
+- expand the  ```advanced details``` section and scroll down to app-data. we will add the following script to the ec2 at launch time
+
+```bash
 #!/bin/bash 
 yum update -y
 amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2
@@ -121,7 +175,9 @@ yum install -y httpd
 systemctl start httpd
 systemctl enable httpd
 ```
-here is a detailed instruction of what the above commands will do:
+
+__Here is a detailed instruction of what the above commands will do:__
+
 1. **#!/bin/bash** - This is called a shebang line that tells the system to use the bash shell interpreter to execute the script.
 
 2. **yum update -y** - Updates all installed packages on the Amazon Linux system to their latest versions. The -y flag automatically answers "yes" to any prompts,
@@ -136,8 +192,7 @@ Extras repository. Specifically, it installs MariaDB 10.2 and PHP 7.2. The -y fl
 
 6. **systemctl enable httpd** - Configures the Apache HTTP server to automatically start whenever the system boots up.
 
-__*This script will work properly in EC2 user data without requiring password prompts because EC2 user data scripts run with root privileges during instance 
-initialization*__
+**This script will work properly in EC2 user data without requiring password prompts because EC2 user data scripts run with root privileges during instance initialization**
 
 ![webserver](images/web-server.png)
 
@@ -145,37 +200,43 @@ initialization*__
 - inside the instance you can do the command to see the services you installed running ```systemctl list-units --all | grep httpd```
 ![web-server-terminal](images/web-server-terminal.png)
 - you can also attempt to reach the server over the browser using the public ip address of the web-server. This will give you the outcome __**It Works**__
+
 ![web-server-browser](images/web-server-browser.png)
+
 
 - follow the steps again to create the app-server
 - choose the VPC for our Project
 - choose the ```Private-subnet-1``` as our subnet, 
 - **Disable** ```auto-assign-public-ip-address```
 - Bootstrap the instance using this app data script
+
 ```bash
 #!/bin/bash
 sudo yum install -y mariadb-server
 sudo service mariadb start 
 ```
-here is a detailed instruction of what the command does
-1. sudo yum install -y mariadb-server
-   • **sudo:** Executes the command with superuser/administrator privileges
-   • **yum:** The package manager used in RHEL-based Linux distributions
-   • **install:** The yum subcommand to install packages
-   • **-y**: Automatically answers "yes" to any prompts during installation
-   • **mariadb-server:** The package name for MariaDB database server
 
-  This command installs the MariaDB database server software on your system. MariaDB is an open-source relational database that's a fork of MySQL.
+**here is a detailed instruction of what the command does**
+
+1. sudo yum install -y mariadb-server
+-  **sudo:** Executes the command with superuser/administrator privileges
+- **yum:** The package manager used in RHEL-based Linux distributions
+- **install:** The yum subcommand to install packages
+- **-y**: Automatically answers "yes" to any prompts during installation
+- **mariadb-server:** The package name for MariaDB database server
+
+This command installs the MariaDB database server software on your system. MariaDB is an open-source relational database that's a fork of MySQL.
 
 2. sudo service mariadb start
-   • **sudo:** Executes the command with superuser privileges
-   • **service:** A command used to run a System V init script
-   • **mariadb:** The name of the service to manage
-   • **start:** The action to perform on the service
+-  **sudo:** Executes the command with superuser privileges
+-  **service:** A command used to run a System V init script
+-  **mariadb:** The name of the service to manage
+-  **start:** The action to perform on the service
 
-  This command starts the MariaDB database service, making the database server active and ready to accept connections.
+This command starts the MariaDB database service, making the database server active and ready to accept connections.
 
-After running these commands:
+**After running these commands:**
+
 • MariaDB server will be installed on your system
 • The MariaDB service will be running
 • You can connect to the database using the MySQL client
@@ -184,16 +245,17 @@ After running these commands:
 - Select an existing security group and select the ```app-server-sg```
 - Just like before launch and use the existing keypair ```bastion-key.pem```
 
-### connecting to the instance in the private subnet through the bastion host for testing
-#### Step 1: 
+### Connecting to the instance in the private subnet through the bastion host for testing
+
+**Step1** 
 To securely connect to the app-server in the private subnet via the bastion-host, **firstly** one method we can use is to copy our private keys from our local machine to the bastion-server using the following command
 ```scp -i /path/to/key-pair.pem /path/to/key-pair.pem ec2-user@<bastion-host-public-ip>:~/.ssh/```
 
-• scp: Secure Copy Protocol command, used for transferring files between hosts
-• -i /path/to/key-pair.pem: Specifies the identity file (private key) to use for authenticating to the bastion host, replace ```/path/to/key-pair.pem``` with the actual path to your key file (e.g., ~/.ssh/bastion-key.pem)
-• /path/to/key-pair.pem: The source file you want to copy (your private key file). This is the same key file you're using for authentication
-• ec2-user@<bastion-host-public-ip>: The username and public IP address of the bastion host replace ```<bastion-host-public-ip>``` with the actual public IP (e.g., 54.123.45.67)
-• :~/.ssh/: The destination directory on the bastion host where the file will be copied, ```~/.ssh/``` refers to the .ssh directory in the home directory of the ec2-user
+- scp: Secure Copy Protocol command, used for transferring files between hosts
+- -i /path/to/key-pair.pem: Specifies the identity file (private key) to use for authenticating to the bastion host, replace ```/path/to/key-pair.pem``` with the actual path to your key file (e.g., ~/.ssh/bastion-key.pem)
+- /path/to/key-pair.pem: The source file you want to copy (your private key file). This is the same key file you're using for authentication
+- ec2-user@<bastion-host-public-ip>: The username and public IP address of the bastion host replace ```<bastion-host-public-ip>``` with the actual public IP (e.g., 54.123.45.67)
+- :~/.ssh/: The destination directory on the bastion host where the file will be copied, ```~/.ssh/``` refers to the .ssh directory in the home directory of the ec2-user
 
 __*note*__ Ensure to set your key.pem file with the right permissions ```400``` or  ```600``` is ok for this purpose, so ```chmod 400 key.pem```
 see here!!
@@ -209,7 +271,7 @@ we connected to our private server on ip address 192.168.2.82 from our bastion h
 ##  Step 3: Create a Database
 - Create a DB subnet group by first heading to the Amazon RDS service page on the AWS management console
 - Click on Subnet Groups on the left hand side and the click on ```Create DB subnet group```
-- ●Give it a ```name``` and ```description``` letting you know what it is and then assign your VPC to it
+- Give it a ```name``` and ```description``` letting you know what it is and then assign your VPC to it
 - Put in the ```availability zones``` you used for your subnets
 - Select subnets 3 and 4
 
@@ -236,3 +298,7 @@ we connected to our private server on ip address 192.168.2.82 from our bastion h
 - Test out connecting to the database by typing out ```mysql –user=<your-db-user> -password=<your-db-password> –host=<database-server-endpoint>```
 - Replace database-server-endpoint with the database server endpoint 
 - Type ```show databases;``` to see your database from the app server
+
+![mariadb-connect](images/mariadb-connect.png)
+
+If you got this right, you've successfully set up a three tier architecture for a full stack application using AWS services. Reflect on this milestone and think of better ways to improve this setup.
