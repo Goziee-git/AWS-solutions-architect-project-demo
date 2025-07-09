@@ -181,7 +181,7 @@ After running these commands:
 • You can connect to the database using the MySQL client
 • By default, the database will be accessible on localhost (127.0.0.1) on port 3306
 
-- Select an existing security group and select the ```app- server-sg```
+- Select an existing security group and select the ```app-server-sg```
 - Just like before launch and use the existing keypair ```bastion-key.pem```
 
 ### connecting to the instance in the private subnet through the bastion host for testing
@@ -197,8 +197,42 @@ To securely connect to the app-server in the private subnet via the bastion-host
 
 __*note*__ Ensure to set your key.pem file with the right permissions ```400``` or  ```600``` is ok for this purpose, so ```chmod 400 key.pem```
 see here!!
+
 ![key-to-bastion](images/key-to-bastion.png)
 
 ### Step 2:
 connect to the private instance (app-server) in the private subnet from the bastion host with the command ``` ssh -i ~/.ssh/key-pair.pem ec2-user@<private-instance-private-ip>```
+we connected to our private server on ip address 192.168.2.82 from our bastion host server on 192.218.53.72 🎉🎉🎉
+![bastion-to-private](images/bastion-to-private.png)
 
+
+##  Step 3: Create a Database
+- Create a DB subnet group by first heading to the Amazon RDS service page on the AWS management console
+- Click on Subnet Groups on the left hand side and the click on ```Create DB subnet group```
+- ●Give it a ```name``` and ```description``` letting you know what it is and then assign your VPC to it
+- Put in the ```availability zones``` you used for your subnets
+- Select subnets 3 and 4
+
+![subnet-group](images/subnet-group.png)
+
+- Go to Databases on the left hand side and click on ```Create Database```
+- Click on ```Standard create``` and ```MariaDB``` for the engine type
+- choose free tier
+- Give it an ```identifier``` you can easily identify it with
+- Give it a ```master username``` or leave it as default admin. For the purpose of these instructions I will be using ```root```
+- Give it a ```password``` that you write down somewhere else to make sure you have the correct on
+- Assign your ```vpc``` which you created for this project
+- Choose your subnet group listed under the subnet group section
+- Public access is **NO**
+- Choose existing VPC security groups
+- **Remove** the ```default security group``` and add your ```database security group```
+- Select your first ```availability zone``` as well
+- Scroll down to Additional configuration on the bottom and give it an ```initial database name``` and save it in the same spot as your password since it will be used later
+- ```Disable automated backups and encryption``` since they are not needed (These are normally best practice to leave enabled but the database will spin up faster with those checked off as they are not needed).
+- Scroll down all the way to the bottom and ```create``` your database
+
+## TESTING CONNECTIVITY TO DATABASE
+- To Connect to the database, ssh into the bastion server, and from the bastion server, ssh into the app-server where you have mariadb-server installed.
+- Test out connecting to the database by typing out ```mysql –user=<your-db-user> -password=<your-db-password> –host=<database-server-endpoint>```
+- Replace database-server-endpoint with the database server endpoint 
+- Type ```show databases;``` to see your database from the app server
