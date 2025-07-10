@@ -76,12 +76,16 @@ __STEP1__
 - Allocate an Elastic IP address by going to Elastic IPs on the left hand side and click ```Allocate Elastic IP address```
 - Make sure the ```Network-border-group``` is the same as the region you've been creating your resources and Leave all other settings as default then press ```“Allocate”```. You can optionally add a name tag if you wish though this is not necessary
 ![elastic-ip](images/elastic-ip.png)
+
 **INTERNET GATEWAY**
 - Now create an internet gateway and attach it to the VPC by going to Internet Gateways on the left hand side and clicking ```“Create Internet Gateway”```
 - After creating the Internet Gateway, at the upper right corner, click on actions, in the drop-down menu, choose ```Attach VPC``` and select the VPC for your resources, click on the yellow button selecting```Attach Internet Gateway```.
+
 ![internet-gateway](images/internet-gateway.png)
 
 📲**NAT GATEWAY**
+__**when creating route tables for routing outbound traffic from a private subnet, you should always assign it to a public subnet and not a private subnet, this is because NAT Gateways needs internet connectivity to function properly since they translate private ip addresses to public ones for outbound traffic through the internet gateway, if you placed it in the private subnet, it wouldnt have internet access itself so it wouldnt be able to provide internet access to other resources**__
+
 - Create a NAT Gateway by clicking on Nat Gateways on the left hand side and then clicking ```Create NAT Gateway```
 - Give it a name like this ```my-nat-gateway``` and assign it to a **public subnet** such as ```Public-Subnet```which you created earlier.
 - Select ```Connectivity type``` as **Public**
