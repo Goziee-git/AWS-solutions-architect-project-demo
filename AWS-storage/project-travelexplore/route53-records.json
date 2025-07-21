@@ -1,0 +1,98 @@
+{
+  "Changes": [
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "travelexplore.com",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "Z2FDTNDATAQYW2",
+          "DNSName": "d123456abcdef8.cloudfront.net",
+          "EvaluateTargetHealth": false
+        }
+      }
+    },
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "www.travelexplore.com",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "Z2FDTNDATAQYW2",
+          "DNSName": "d123456abcdef8.cloudfront.net",
+          "EvaluateTargetHealth": false
+        }
+      }
+    },
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "us.travelexplore.com",
+        "Type": "A",
+        "Region": "us-east-1",
+        "SetIdentifier": "us-east-1",
+        "TTL": 60,
+        "ResourceRecords": [
+          {
+            "Value": "12.34.56.78"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "eu.travelexplore.com",
+        "Type": "A",
+        "Region": "eu-west-1",
+        "SetIdentifier": "eu-west-1",
+        "TTL": 60,
+        "ResourceRecords": [
+          {
+            "Value": "34.56.78.90"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "ap.travelexplore.com",
+        "Type": "A",
+        "Region": "ap-northeast-1",
+        "SetIdentifier": "ap-northeast-1",
+        "TTL": 60,
+        "ResourceRecords": [
+          {
+            "Value": "56.78.90.12"
+          }
+        ]
+      }
+    },
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "assets.travelexplore.com",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "Z2FDTNDATAQYW2",
+          "DNSName": "d123456abcdef8.cloudfront.net",
+          "EvaluateTargetHealth": false
+        }
+      }
+    },
+    {
+      "Action": "CREATE",
+      "ResourceRecordSet": {
+        "Name": "admin.travelexplore.com",
+        "Type": "A",
+        "TTL": 60,
+        "ResourceRecords": [
+          {
+            "Value": "12.34.56.78"
+          }
+        ]
+      }
+    }
+  ]
+}

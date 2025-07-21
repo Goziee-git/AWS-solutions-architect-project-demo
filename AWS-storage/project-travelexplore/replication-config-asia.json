@@ -1,0 +1,17 @@
+{
+  "Role": "arn:aws:iam::123456789012:role/S3ReplicationRole",
+  "Rules": [
+    {
+      "Status": "Enabled",
+      "Priority": 1,
+      "DeleteMarkerReplication": { "Status": "Enabled" },
+      "Filter": {
+        "Prefix": ""
+      },
+      "Destination": {
+        "Bucket": "arn:aws:s3:::travelexplore-assets-asia",
+        "StorageClass": "STANDARD"
+      }
+    }
+  ]
+}
