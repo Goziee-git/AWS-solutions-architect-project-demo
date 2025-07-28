@@ -78,6 +78,10 @@ Static websites consist of HTML, CSS, JavaScript, images, and other client-side 
 1. Go to the "Objects" tab
 2. Click "Upload"
 3. Add your website files (HTML, CSS, JS, images, etc.)
+
+**NOTE** : when uploading files or folders to the S3 bucket, your code files like ```style.css/``` and ```scipt.js``` can be in a nested format, but the ```index.html``` and the ```error.html``` must be uploaded as files in the root of your bucket and not in a nested folder. 
+to confirm check the object ARN and ensure that it conforms to this S3 standard.
+
 4. Click "Upload"
 
 ### Step 5: Access Your Website
@@ -104,30 +108,40 @@ Static websites consist of HTML, CSS, JavaScript, images, and other client-side 
 
 ### Step 2: Connect to Your Instance
 ```bash
-ssh -i /path/to/your-key.pem ec2-user@your-instance-public-dns
+ssh -i /path/to/your-key.pem ec2-user@your-instance-public-ip
 ```
+for example, if your RSA public key is ```prospa.pem``` is in your tilde(~) directory, you do ```ssd -i prospa.pem ec2-user@your-instance-public-ip```
 
 ### Step 3: Install Web Server (Apache)
 ```bash
-# Update system packages
+# The command below uses the yum package manager to update the ec2 instance that you have created a secure connection to via ssh.
 sudo yum update -y
 
-# Install Apache
+# The command below is used to install the apache webserver using the httpd installation candidate. The webserver is a software that is used together with a server like an ec2 instance to serve static and dynamic files like website files to users over a server.
 sudo yum install -y httpd
 
-# Start Apache and enable it to start on boot
+# we use systemctl as a command line utility to start the apache webserver with this command below
 sudo systemctl start httpd
+
+# here again we are using the systemctl utility to enable the webserver, this will allow the webserver to run, when we both the intance.
 sudo systemctl enable httpd
 
-# Set permissions
+# the command below is used to add the host with hostname (ec2-user) to the apache group
 sudo usermod -a -G apache ec2-user
+# after doing the command above, to verify this, do this command from your / directory 
+```cat/etc/groups``` 
+
+#the command below changes the ownership for the files in /var/www/ from the ec2-user to the apache 
 sudo chown -R ec2-user:apache /var/www
+
 sudo chmod 2775 /var/www
 find /var/www -type d -exec sudo chmod 2775 {} \;
 find /var/www -type f -exec sudo chmod 0664 {} \;
 ```
 
-### Step 4: Upload Website Files
+### Step 4: Upload Website Files 
+(if you have the files on your local machine) if not then clone this repository
+
 Option 1: Using SCP
 ```bash
 scp -i /path/to/your-key.pem -r /path/to/local/website/* ec2-user@your-instance-public-dns:/var/www/html/

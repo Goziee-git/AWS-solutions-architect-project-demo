@@ -1,6 +1,8 @@
-# Sample Travel Website
+# TravelExplore
 
 This is a static website for TravelExplore, featuring various travel destinations and guides.
+
+![web-image](images/travelexplore.png)
 
 ## Local Development and Testing
 
@@ -69,3 +71,4 @@ sample-website/
 - This is a static website meant for demonstration purposes
 - All images are sourced from Unsplash and are free to use
 - The website is responsive and should work well on all device sizes
+
