@@ -65,12 +65,14 @@ Amazon CloudFront is a content delivery network (CDN) service that:
 3. choose a name for your Distribution
 4. you can leave Description as opional
 5. from the type select ```single website```
-6. 
-7. Under "Origin Domain", select your S3 bucket website endpoint
+7. Under "Origin Domain", select your S3 bucket website endpoint, because we intend to use this Distribution as a website
 8. For "Origin Path", leave empty if your content is at the root
-9. For "Origin ID", keep the default or provide a meaningful name
-10. Under "Origin Access", select "Public"
-11. For "Default Cache Behavior Settings":
+10. under cache settings use default settings so that s3 will use the default cache settings
+11. click on ```next```
+12. under security settings, choose ```do not enable security protections``` because we have not configured any WAF for our Distribution
+13. For "Origin ID", keep the default or provide a meaningful name
+14. Under "Origin Access", select "Public"
+15. For "Default Cache Behavior Settings":
    - Viewer Protocol Policy: Redirect HTTP to HTTPS
    - Allowed HTTP Methods: GET, HEAD (for static sites)
    - Cache Policy: Select "CachingOptimized" for static content
