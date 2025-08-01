@@ -151,7 +151,8 @@ scp -i ~/rsa.pem -r ~/static-website-files/* ec2-user@ip-addr:/var/www/html
 ```
 
 Option 2: Using Git
-you should only consider this option if you want to use Git within the ec2 server in the cloud. For this project we didnt use this step because of vCPU for free tier was 2, and it is not advisable to bloat instance storage. here are the High level steps
+
+Only consider this option if you want to use Git within the ec2 server in the cloud. For this project we didnt use this step because of vCPU for free tier was 2, and it is not advisable to bloat instance storage. here are the High level steps
 ```bash
 # Install Git 
 sudo yum install -y git
