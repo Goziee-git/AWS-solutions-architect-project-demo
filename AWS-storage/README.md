@@ -145,11 +145,15 @@ find /var/www -type f -exec sudo chmod 0664 {} \;
 Option 1: Using SCP
 ```bash
 scp -i /path/to/your-key.pem -r /path/to/local/website/* ec2-user@your-instance-public-dns:/var/www/html/
+
+#for example if your RSA.pem and static-file are in the linux working directory(~), you should take note of your public-ip address and do the command like this
+scp -i ~/rsa.pem -r ~/static-website-files/* ec2-user@ip-addr:/var/www/html
 ```
 
 Option 2: Using Git
+you should only consider this option if you want to use Git within the ec2 server in the cloud. For this project we didnt use this step because of vCPU for free tier was 2, and it is not advisable to bloat instance storage. here are the High level steps
 ```bash
-# Install Git
+# Install Git 
 sudo yum install -y git
 
 # Navigate to web directory
