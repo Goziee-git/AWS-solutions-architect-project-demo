@@ -62,22 +62,26 @@ Amazon CloudFront is a content delivery network (CDN) service that:
 
 1. Navigate to the CloudFront console
 2. Click "Create Distribution"
-3. Under "Origin Domain", select your S3 bucket website endpoint
-4. For "Origin Path", leave empty if your content is at the root
-5. For "Origin ID", keep the default or provide a meaningful name
-6. Under "Origin Access", select "Public"
-7. For "Default Cache Behavior Settings":
+3. choose a name for your Distribution
+4. you can leave Description as opional
+5. from the type select ```single website```
+6. 
+7. Under "Origin Domain", select your S3 bucket website endpoint
+8. For "Origin Path", leave empty if your content is at the root
+9. For "Origin ID", keep the default or provide a meaningful name
+10. Under "Origin Access", select "Public"
+11. For "Default Cache Behavior Settings":
    - Viewer Protocol Policy: Redirect HTTP to HTTPS
    - Allowed HTTP Methods: GET, HEAD (for static sites)
    - Cache Policy: Select "CachingOptimized" for static content
    - Origin Request Policy: Select "CORS-S3Origin"
-8. For "Distribution Settings":
+11. For "Distribution Settings":
    - Price Class: Choose based on your geographic needs
    - AWS WAF Web ACL: Select if you have one configured
    - Alternate Domain Names (CNAMEs): Add your custom domain if applicable
    - SSL Certificate: Select "Default CloudFront Certificate" or use a custom certificate
    - Default Root Object: Enter "index.html"
-9. Click "Create Distribution"
+11. Click "Create Distribution"
 
 ### Step 3: Wait for Deployment
 
