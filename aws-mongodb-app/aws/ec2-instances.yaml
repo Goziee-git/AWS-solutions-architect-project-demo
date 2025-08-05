@@ -1,0 +1,309 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EC2 Instances for MongoDB Application'
+
+Parameters:
+  EnvironmentName:
+    Description: Environment name prefix
+    Type: String
+    Default: 'mongodb-app'
+  
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: 't3.medium'
+  
+  KeyPairName:
+    Description: EC2 Key Pair for SSH access
+    Type: AWS::EC2::KeyPair::KeyName
+  
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+Resources:
+  # IAM Role for EC2 instances
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: '*'
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2Role
+
+  # Launch Templates
+  WebServerLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub ${EnvironmentName}-WebServer-LT
+      LaunchTemplateData:
+        ImageId: !Ref LatestAmiId
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyPairName
+        IamInstanceProfile:
+          Arn: !GetAtt EC2InstanceProfile.Arn
+        SecurityGroupIds:
+          - !ImportValue 
+            Fn::Sub: ${EnvironmentName}-WebServer-SG
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y docker git
+            systemctl start docker
+            systemctl enable docker
+            usermod -a -G docker ec2-user
+            
+            # Install Docker Compose
+            curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+            
+            # Clone application code
+            cd /home/ec2-user
+            git clone https://github.com/your-repo/aws-mongodb-app.git
+            cd aws-mongodb-app
+            
+            # Start frontend service
+            docker-compose up -d frontend
+            
+            # Install CloudWatch agent
+            wget https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+            rpm -U ./amazon-cloudwatch-agent.rpm
+
+  APIServerLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub ${EnvironmentName}-APIServer-LT
+      LaunchTemplateData:
+        ImageId: !Ref LatestAmiId
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyPairName
+        IamInstanceProfile:
+          Arn: !GetAtt EC2InstanceProfile.Arn
+        SecurityGroupIds:
+          - !ImportValue 
+            Fn::Sub: ${EnvironmentName}-APIServer-SG
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y docker git
+            systemctl start docker
+            systemctl enable docker
+            usermod -a -G docker ec2-user
+            
+            # Install Docker Compose
+            curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+            
+            # Clone application code
+            cd /home/ec2-user
+            git clone https://github.com/your-repo/aws-mongodb-app.git
+            cd aws-mongodb-app
+            
+            # Start backend service
+            docker-compose up -d backend
+            
+            # Install CloudWatch agent
+            wget https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+            rpm -U ./amazon-cloudwatch-agent.rpm
+
+  DatabaseLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub ${EnvironmentName}-Database-LT
+      LaunchTemplateData:
+        ImageId: !Ref LatestAmiId
+        InstanceType: t3.large
+        KeyName: !Ref KeyPairName
+        IamInstanceProfile:
+          Arn: !GetAtt EC2InstanceProfile.Arn
+        SecurityGroupIds:
+          - !ImportValue 
+            Fn::Sub: ${EnvironmentName}-Database-SG
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: 100
+              VolumeType: gp3
+              Encrypted: true
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install -y docker git
+            systemctl start docker
+            systemctl enable docker
+            usermod -a -G docker ec2-user
+            
+            # Install Docker Compose
+            curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+            
+            # Clone application code
+            cd /home/ec2-user
+            git clone https://github.com/your-repo/aws-mongodb-app.git
+            cd aws-mongodb-app
+            
+            # Start MongoDB service
+            docker-compose up -d mongodb
+            
+            # Install CloudWatch agent
+            wget https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+            rpm -U ./amazon-cloudwatch-agent.rpm
+
+  # EC2 Instances
+  WebServer1:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WebServerLaunchTemplate
+        Version: !GetAtt WebServerLaunchTemplate.LatestVersionNumber
+      SubnetId: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-Private-Subnet-AZ1
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-WebServer-AZ1
+
+  WebServer2:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WebServerLaunchTemplate
+        Version: !GetAtt WebServerLaunchTemplate.LatestVersionNumber
+      SubnetId: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-Private-Subnet-AZ2
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-WebServer-AZ2
+
+  APIServer1:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref APIServerLaunchTemplate
+        Version: !GetAtt APIServerLaunchTemplate.LatestVersionNumber
+      SubnetId: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-Private-Subnet-AZ1
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-APIServer-AZ1
+
+  APIServer2:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref APIServerLaunchTemplate
+        Version: !GetAtt APIServerLaunchTemplate.LatestVersionNumber
+      SubnetId: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-Private-Subnet-AZ2
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-APIServer-AZ2
+
+  DatabaseServer1:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref DatabaseLaunchTemplate
+        Version: !GetAtt DatabaseLaunchTemplate.LatestVersionNumber
+      SubnetId: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-Private-Subnet-AZ1
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Database-AZ1
+
+  DatabaseServer2:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref DatabaseLaunchTemplate
+        Version: !GetAtt DatabaseLaunchTemplate.LatestVersionNumber
+      SubnetId: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-Private-Subnet-AZ2
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Database-AZ2
+
+  # Bastion Host
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: t3.micro
+      KeyName: !Ref KeyPairName
+      SubnetId: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-Public-Subnet-AZ1
+      SecurityGroupIds:
+        - !ImportValue 
+          Fn::Sub: ${EnvironmentName}-Bastion-SG
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y mysql mongodb-org-tools
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Bastion
+
+  # Target Group Attachments
+  WebServer1TargetGroupAttachment:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
+    Properties:
+      TargetGroupArn: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-Web-TG
+      TargetId: !Ref WebServer1
+      Port: 3000
+
+  WebServer2TargetGroupAttachment:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
+    Properties:
+      TargetGroupArn: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-Web-TG
+      TargetId: !Ref WebServer2
+      Port: 3000
+
+  APIServer1TargetGroupAttachment:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
+    Properties:
+      TargetGroupArn: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-API-TG
+      TargetId: !Ref APIServer1
+      Port: 5000
+
+  APIServer2TargetGroupAttachment:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
+    Properties:
+      TargetGroupArn: !ImportValue 
+        Fn::Sub: ${EnvironmentName}-API-TG
+      TargetId: !Ref APIServer2
+      Port: 5000
+
+Outputs:
+  BastionHostIP:
+    Description: Bastion Host Public IP
+    Value: !GetAtt BastionHost.PublicIp
+    Export:
+      Name: !Sub ${EnvironmentName}-Bastion-IP
