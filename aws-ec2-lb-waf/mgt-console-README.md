@@ -406,9 +406,194 @@ echo "User data script completed successfully" >> /var/log/user-data.log
 
 ---
 
-## Step 4: Create Application Load Balancer
+## Step 4: Create EC2 Instances
 
-### 4.1 Create Target Group
+### 4.1 Create EC2 Instances for the Demo
+
+You can create EC2 instances in two ways:
+1. **Using the Launch Template** (Recommended for consistency)
+2. **Manual EC2 Instance Creation** (For learning purposes)
+
+#### Option 1: Launch Instances from Template
+
+1. Navigate to **EC2 Console** → **Launch Templates**
+2. Select your launch template (`ec2-alb-waf-demo-template`)
+3. Click **Actions** → **Launch instance from template**
+4. **Instance 1 Configuration**:
+   - **Number of instances**: 1
+   - **Network settings**:
+     - **Subnet**: Select `ec2-alb-waf-demo-private-subnet-1`
+     - **Auto-assign public IP**: Disable
+     - **Security groups**: Ensure EC2 security group is selected
+   - **Advanced details**:
+     - **IAM instance profile**: Ensure the role is selected
+     - **User data**: Should be pre-filled from template
+5. **Add tags**:
+   - **Key**: Name, **Value**: `ec2-alb-waf-demo-instance-1`
+   - **Key**: Environment, **Value**: `demo`
+   - **Key**: Project, **Value**: `ec2-alb-waf`
+6. Click **Launch instance**
+
+7. **Instance 2 Configuration**:
+   - Repeat the above steps but:
+     - **Subnet**: Select `ec2-alb-waf-demo-private-subnet-2`
+     - **Name tag**: `ec2-alb-waf-demo-instance-2`
+
+#### Option 2: Manual EC2 Instance Creation
+
+1. Navigate to **EC2 Console** → **Instances** → **Launch instances**
+
+**Instance 1:**
+2. **Name and tags**:
+   - **Name**: `ec2-alb-waf-demo-instance-1`
+   - **Additional tags**:
+     - **Environment**: `demo`
+     - **Project**: `ec2-alb-waf`
+
+3. **Application and OS Images (Amazon Machine Image)**:
+   - **Quick Start**: Amazon Linux
+   - **Amazon Machine Image (AMI)**: Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type
+   - **Architecture**: 64-bit (x86)
+
+4. **Instance type**: 
+   - Select `t3.micro` (eligible for free tier)
+
+5. **Key pair (login)**:
+   - **Key pair name**: Select your existing key pair or create a new one
+   - If creating new: **Key pair name**: `ec2-alb-waf-demo-key`
+
+6. **Network settings**:
+   - Click **Edit**
+   - **VPC**: Select `ec2-alb-waf-demo-vpc`
+   - **Subnet**: Select `ec2-alb-waf-demo-private-subnet-1`
+   - **Auto-assign public IP**: Disable
+   - **Firewall (security groups)**: Select existing security group
+   - **Common security groups**: Select `ec2-alb-waf-demo-ec2-sg`
+
+7. **Configure storage**:
+   - **Root volume**: 8 GiB gp3 (default is fine)
+   - **Encrypted**: Enable (recommended)
+
+8. **Advanced details**:
+   - **IAM instance profile**: Select `ec2-alb-waf-demo-role`
+   - **Monitoring**: Enable detailed monitoring (optional)
+   - **User data**: Copy and paste the user data script from the launch template section above
+
+9. **Summary**: Review configuration and click **Launch instance**
+
+**Instance 2:**
+10. Repeat steps 1-9 with these changes:
+    - **Name**: `ec2-alb-waf-demo-instance-2`
+    - **Subnet**: Select `ec2-alb-waf-demo-private-subnet-2`
+
+### 4.2 Verify EC2 Instance Setup
+
+1. **Check Instance Status**:
+   - Go to **EC2 Console** → **Instances**
+   - Wait for both instances to show:
+     - **Instance State**: Running
+     - **Status Checks**: 2/2 checks passed
+
+2. **Verify User Data Execution**:
+   - Select an instance → **Actions** → **Monitor and troubleshoot** → **Get system log**
+   - Look for "User data script completed successfully" message
+   - Or connect to instance and check: `tail -f /var/log/user-data.log`
+
+3. **Test Web Application**:
+   - If you have a bastion host or VPN access:
+   ```bash
+   # Test Apache (port 80)
+   curl http://[PRIVATE-IP-OF-INSTANCE]
+   
+   # Test Flask app (port 8080)
+   curl http://[PRIVATE-IP-OF-INSTANCE]:8080/health
+   curl http://[PRIVATE-IP-OF-INSTANCE]:8080/api/status
+   ```
+
+### 4.3 Create Bastion Host (Optional - for SSH access)
+
+If you need to SSH into your private instances for troubleshooting:
+
+1. **Launch Bastion Instance**:
+   - **Name**: `ec2-alb-waf-demo-bastion`
+   - **AMI**: Amazon Linux 2
+   - **Instance type**: `t3.micro`
+   - **Subnet**: Select a public subnet (`ec2-alb-waf-demo-public-subnet-1`)
+   - **Auto-assign public IP**: Enable
+   - **Security group**: Select `ec2-alb-waf-demo-bastion-sg`
+   - **Key pair**: Same as your other instances
+
+2. **Connect to Private Instances via Bastion**::
+   ```bash
+   # Copy your private key to bastion (not recommended for production)
+   scp -i your-key.pem your-key.pem ec2-user@[BASTION-PUBLIC-IP]:~/.ssh/
+   
+   # SSH to bastion
+   ssh -i your-key.pem ec2-user@[BASTION-PUBLIC-IP]
+   
+   # From bastion, SSH to private instance
+   ssh -i ~/.ssh/your-key.pem ec2-user@[PRIVATE-INSTANCE-IP]
+   ```
+
+### 4.4 Troubleshooting EC2 Instance Issues
+
+**Common Issues:**
+
+1. **Instance fails to start**:
+   - Check security group rules
+   - Verify subnet has route to NAT gateway
+   - Check IAM role permissions
+
+2. **User data script fails**:
+   - Check system logs: **Actions** → **Monitor and troubleshoot** → **Get system log**
+   - Connect to instance and check: `/var/log/cloud-init-output.log`
+
+3. **Web application not responding**:
+   - Check if services are running:
+     ```bash
+     sudo systemctl status httpd
+     sudo systemctl status webapp
+     ```
+   - Check application logs:
+     ```bash
+     sudo tail -f /var/log/webapp.log
+     ```
+
+4. **Cannot connect to instance**:
+   - Verify security group allows SSH from your IP or bastion
+   - Check if instance is in private subnet (needs bastion or VPN)
+   - Ensure key pair is correct
+
+**Useful Commands for Instance Management:**
+
+```bash
+# Check running services
+sudo systemctl list-units --type=service --state=running
+
+# Restart web application
+sudo systemctl restart webapp
+
+# Check disk space
+df -h
+
+# Check memory usage
+free -h
+
+# Check network connectivity
+ping google.com
+
+# Check if ports are listening
+sudo netstat -tlnp | grep -E ':(80|8080)'
+
+# View recent system logs
+sudo journalctl -n 50
+```
+
+---
+
+## Step 5: Create Application Load Balancer
+
+### 5.1 Create Target Group
 1. Navigate to **EC2 Console** → **Target Groups** → **Create target group**
 2. Configure:
    - **Target type**: Instances
@@ -426,7 +611,22 @@ echo "User data script completed successfully" >> /var/log/user-data.log
    - **Interval**: 30 seconds
 4. Click **Next** → **Create target group**
 
-### 4.2 Create Application Load Balancer
+### 5.2 Register EC2 Instances with Target Group
+
+If you created EC2 instances manually (not using Auto Scaling Group):
+
+1. Navigate to **EC2 Console** → **Target Groups**
+2. Select your target group (`ec2-alb-waf-demo-tg`)
+3. Go to **Targets** tab → **Register targets**
+4. **Available instances**: Select both EC2 instances you created
+5. **Ports for the selected instances**: 80 (this should be pre-filled)
+6. Click **Include as pending below**
+7. Review the pending targets and click **Register pending targets**
+8. Wait for the targets to show as **healthy** (this may take a few minutes)
+
+**Note**: If using Auto Scaling Group (recommended), the instances will be automatically registered.
+
+### 5.3 Create Application Load Balancer
 1. Navigate to **Load Balancers** → **Create Load Balancer**
 2. Select **Application Load Balancer**
 3. Configure:
@@ -445,9 +645,9 @@ echo "User data script completed successfully" >> /var/log/user-data.log
 
 ---
 
-## Step 5: Create Auto Scaling Group
+## Step 6: Create Auto Scaling Group
 
-### 5.1 Create Auto Scaling Group
+### 6.1 Create Auto Scaling Group
 1. Navigate to **Auto Scaling Groups** → **Create Auto Scaling group**
 2. **Step 1 - Choose launch template**:
    - **Name**: `ec2-alb-waf-demo-asg`
@@ -475,9 +675,9 @@ echo "User data script completed successfully" >> /var/log/user-data.log
 
 ---
 
-## Step 6: Create and Configure WAF
+## Step 7: Create and Configure WAF
 
-### 6.1 Create Web ACL
+### 7.1 Create Web ACL
 1. Navigate to **WAF & Shield Console** → **Web ACLs** → **Create web ACL**
 2. **Step 1 - Describe web ACL**:
    - **Name**: `ec2-alb-waf-demo-waf`
@@ -538,7 +738,7 @@ echo "User data script completed successfully" >> /var/log/user-data.log
 5. **Step 4 - Configure metrics**: Enable CloudWatch metrics
 6. **Step 5 - Review and create**: Click **Create web ACL**
 
-### 6.2 Associate WAF with ALB
+### 7.2 Associate WAF with ALB
 1. In the Web ACL details page, go to **Associated AWS resources**
 2. Click **Add AWS resources**
 3. **Resource type**: Application Load Balancer
@@ -547,9 +747,9 @@ echo "User data script completed successfully" >> /var/log/user-data.log
 
 ---
 
-## Step 7: Create S3 Bucket for ALB Logs (Optional)
+## Step 8: Create S3 Bucket for ALB Logs (Optional)
 
-### 7.1 Create S3 Bucket
+### 8.1 Create S3 Bucket
 1. Navigate to **S3 Console** → **Create bucket**
 2. Configure:
    - **Bucket name**: `ec2-alb-waf-demo-logs-[random-suffix]`
@@ -557,7 +757,7 @@ echo "User data script completed successfully" >> /var/log/user-data.log
    - **Block all public access**: Keep enabled
 3. Click **Create bucket**
 
-### 7.2 Configure ALB Access Logs
+### 8.2 Configure ALB Access Logs
 1. Go back to **EC2 Console** → **Load Balancers**
 2. Select your ALB → **Attributes** tab
 3. Click **Edit**
@@ -569,19 +769,19 @@ echo "User data script completed successfully" >> /var/log/user-data.log
 
 ---
 
-## Step 8: Testing the Setup
+## Step 9: Testing the Setup
 
-### 8.1 Basic Connectivity Test
+### 9.1 Basic Connectivity Test
 1. Get your ALB DNS name from the Load Balancer details
 2. Open a web browser and navigate to: `http://[ALB-DNS-NAME]`
 3. You should see the demo web application
 
-### 8.2 Load Balancer Testing
+### 9.2 Load Balancer Testing
 1. Refresh the page multiple times
 2. Check the instance information to see different instances serving requests
 3. Use the "Make 10 Requests" button to test load distribution
 
-### 8.3 WAF Testing
+### 9.3 WAF Testing
 1. **SQL Injection Test**: Click "Test SQL Injection" button
 2. **XSS Test**: Click "Test XSS" button
 3. **Rate Limiting**: Click "Test Rate Limiting" button
@@ -589,21 +789,21 @@ echo "User data script completed successfully" >> /var/log/user-data.log
    - Try accessing: `http://[ALB-DNS-NAME]/admin` (should be blocked)
    - Use curl with bad user agent: `curl -H "User-Agent: badbot" http://[ALB-DNS-NAME]`
 
-### 8.4 Monitor WAF Activity
+### 9.4 Monitor WAF Activity
 1. Go to **WAF Console** → Your Web ACL → **Overview**
 2. Check **Sampled requests** to see blocked requests
 3. View **Metrics** for rule effectiveness
 
-### 8.5 Monitor ALB Health
+### 9.5 Monitor ALB Health
 1. Go to **EC2 Console** → **Target Groups** → Your target group
 2. Check **Targets** tab to see healthy instances
 3. View **Monitoring** tab for metrics
 
 ---
 
-## Step 9: CloudWatch Monitoring (Optional)
+## Step 10: CloudWatch Monitoring (Optional)
 
-### 9.1 Create CloudWatch Dashboard
+### 10.1 Create CloudWatch Dashboard
 1. Navigate to **CloudWatch Console** → **Dashboards** → **Create dashboard**
 2. **Dashboard name**: `EC2-ALB-WAF-Demo`
 3. Add widgets for:
@@ -613,7 +813,7 @@ echo "User data script completed successfully" >> /var/log/user-data.log
    - EC2 CPU utilization
    - Auto Scaling group metrics
 
-### 9.2 Set up CloudWatch Alarms
+### 10.2 Set up CloudWatch Alarms
 1. **High CPU Alarm**:
    - **Metric**: EC2 → By Auto Scaling Group → CPUUtilization
    - **Threshold**: > 70%
@@ -626,7 +826,7 @@ echo "User data script completed successfully" >> /var/log/user-data.log
 
 ---
 
-## Step 10: Cleanup Instructions
+## Step 11: Cleanup Instructions
 
 When you're done testing, clean up resources in this order:
 
