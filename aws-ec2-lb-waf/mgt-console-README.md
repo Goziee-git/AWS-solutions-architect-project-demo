@@ -456,7 +456,7 @@ You can create EC2 instances in two ways:
    - **Architecture**: 64-bit (x86)
 
 4. **Instance type**: 
-   - Select `t3.micro` (eligible for free tier)
+   - Select `t3.small` (not eligible for free tier)
 
 5. **Key pair (login)**:
    - **Key pair name**: Select your existing key pair or create a new one
