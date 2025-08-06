@@ -1,0 +1,24 @@
+[Unit]
+Description=EC2 ALB WAF Demo Web Application
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/opt/flask-app
+Environment=PATH=/usr/bin:/usr/local/bin
+Environment=PORT=8080
+Environment=HOST=0.0.0.0
+Environment=DEBUG=False
+ExecStart=/usr/bin/python3 /opt/flask-app/run.py
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=webapp
+
+[Install]
+WantedBy=multi-user.target

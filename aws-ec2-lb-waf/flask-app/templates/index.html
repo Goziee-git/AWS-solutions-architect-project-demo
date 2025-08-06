@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS EC2 + ALB + WAF Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #232f3e 0%, #ff9900 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            border-left: 5px solid #ff9900;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .info-card h3 {
+            color: #232f3e;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .info-value {
+            color: #6c757d;
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .test-section {
+            background: #e8f4fd;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 1px solid #bee5eb;
+        }
+
+        .test-section h3 {
+            color: #0c5460;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-section p {
+            color: #0c5460;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #ff9900 0%, #ff7700 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #ff7700 0%, #ff5500 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 153, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .results {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .results.success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .results.error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .results.warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ff9900;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AWS EC2 + ALB + WAF Demo</h1>
+            <p>Testing Load Balancing and Web Application Firewall Protection</p>
+        </div>
+
+        <div class="content">
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>🖥️ Instance Information</h3>
+                    <div class="info-item">
+                        <span class="info-label">Instance ID:</span>
+                        <span class="info-value">{{ metadata.instance_id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Instance Type:</span>
+                        <span class="info-value">{{ metadata.instance_type }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Availability Zone:</span>
+                        <span class="info-value">{{ metadata.availability_zone }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Region:</span>
+                        <span class="info-value">{{ metadata.region }}</span>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>🌐 Network Information</h3>
+                    <div class="info-item">
+                        <span class="info-label">Private IP:</span>
+                        <span class="info-value">{{ metadata.private_ip }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Public IP:</span>
+                        <span class="info-value">{{ metadata.public_ip }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Status:</span>
+                        <span class="info-value">
+                            <span class="status-indicator"></span>Online
+                        </span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Last Updated:</span>
+                        <span class="info-value" id="timestamp"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h3>🛡️ WAF Protection Testing</h3>
+                <p>Test the Web Application Firewall by attempting various attack patterns. The WAF should block malicious requests and return 403 Forbidden responses.</p>
+                
+                <div class="button-group">
+                    <button class="btn btn-danger" onclick="testSQLInjection()">Test SQL Injection</button>
+                    <button class="btn btn-danger" onclick="testXSS()">Test XSS Attack</button>
+                    <button class="btn btn-danger" onclick="testPathTraversal()">Test Path Traversal</button>
+                    <button class="btn btn-danger" onclick="testBadUserAgent()">Test Bad User Agent</button>
+                    <button class="btn btn-danger" onclick="testAdminPath()">Test Admin Path</button>
+                    <button class="btn btn-danger" onclick="testRateLimiting()">Test Rate Limiting</button>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn" onclick="testNormalRequest()">Normal Request (Should Work)</button>
+                    <button class="btn btn-secondary" onclick="clearResults()">Clear Results</button>
+                </div>
+
+                <div id="waf-results" class="results">
+                    Click any test button above to see WAF protection in action...
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h3>⚖️ Load Balancer Testing</h3>
+                <p>Test the Application Load Balancer by making multiple requests. You should see requests distributed across different EC2 instances.</p>
+                
+                <div class="button-group">
+                    <button class="btn" onclick="refreshPage()">Refresh Page</button>
+                    <button class="btn" onclick="makeMultipleRequests(10)">Make 10 Requests</button>
+                    <button class="btn" onclick="makeMultipleRequests(50)">Make 50 Requests</button>
+                    <button class="btn" onclick="testLoadBalancerHealth()">Test Health Check</button>
+                </div>
+
+                <div id="lb-results" class="results">
+                    Click any test button above to see load balancing in action...
+                </div>
+            </div>
+
+            <div class="test-section">
+                <h3>📊 Performance Testing</h3>
+                <p>Test the application performance and monitor response times under different load conditions.</p>
+                
+                <div class="button-group">
+                    <button class="btn" onclick="performanceTest(1)">Single Request Test</button>
+                    <button class="btn" onclick="performanceTest(10)">Concurrent Test (10)</button>
+                    <button class="btn" onclick="performanceTest(25)">Load Test (25)</button>
+                    <button class="btn btn-secondary" onclick="getMetrics()">Get Metrics</button>
+                </div>
+
+                <div id="perf-results" class="results">
+                    Click any test button above to run performance tests...
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Running test...</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>AWS EC2 + Application Load Balancer + WAF Demo | Instance: {{ metadata.instance_id }}</p>
+        </div>
+    </div>
+
+    <script>
+        // Update timestamp on page load
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+
+        // Utility functions
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function updateResults(elementId, testName, result, isError = false, isWarning = false) {
+            const resultsDiv = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleString();
+            
+            let className = 'results';
+            if (isError) className += ' error';
+            else if (isWarning) className += ' warning';
+            else className += ' success';
+            
+            resultsDiv.className = className;
+            resultsDiv.innerHTML = `[${timestamp}] ${testName}:\n\n${result}`;
+        }
+
+        function clearResults() {
+            const resultElements = ['waf-results', 'lb-results', 'perf-results'];
+            resultElements.forEach(id => {
+                const element = document.getElementById(id);
+                element.className = 'results';
+                element.innerHTML = 'Results cleared. Click any test button to run tests...';
+            });
+        }
+
+        // WAF Testing Functions
+        function testSQLInjection() {
+            showLoading();
+            const payload = "' OR 1=1 --";
+            
+            fetch(`/search?q=${encodeURIComponent(payload)}`)
+                .then(response => {
+                    hideLoading();
+                    if (response.status === 403) {
+                        updateResults('waf-results', 'SQL Injection Test', 
+                            `✅ SUCCESS: WAF blocked the SQL injection attempt!\nStatus: ${response.status} Forbidden\nPayload: ${payload}`, false);
+                    } else {
+                        updateResults('waf-results', 'SQL Injection Test', 
+                            `⚠️ WARNING: Request was not blocked by WAF\nStatus: ${response.status}\nPayload: ${payload}`, false, true);
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    updateResults('waf-results', 'SQL Injection Test', 
+                        `❌ ERROR: ${error.message}`, true);
+                });
+        }
+
+        function testXSS() {
+            showLoading();
+            const payload = '<script>alert("XSS")</script>';
+            
+            fetch('/comment', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({comment: payload})
+            })
+                .then(response => {
+                    hideLoading();
+                    if (response.status === 403) {
+                        updateResults('waf-results', 'XSS Test', 
+                            `✅ SUCCESS: WAF blocked the XSS attempt!\nStatus: ${response.status} Forbidden\nPayload: ${payload}`, false);
+                    } else {
+                        updateResults('waf-results', 'XSS Test', 
+                            `⚠️ WARNING: Request was not blocked by WAF\nStatus: ${response.status}\nPayload: ${payload}`, false, true);
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    updateResults('waf-results', 'XSS Test', 
+                        `❌ ERROR: ${error.message}`, true);
+                });
+        }
+
+        function testPathTraversal() {
+            showLoading();
+            const payload = '../../../etc/passwd';
+            
+            fetch(`/api/file?path=${encodeURIComponent(payload)}`)
+                .then(response => {
+                    hideLoading();
+                    if (response.status === 403) {
+                        updateResults('waf-results', 'Path Traversal Test', 
+                            `✅ SUCCESS: WAF blocked the path traversal attempt!\nStatus: ${response.status} Forbidden\nPayload: ${payload}`, false);
+                    } else {
+                        updateResults('waf-results', 'Path Traversal Test', 
+                            `⚠️ WARNING: Request was not blocked by WAF\nStatus: ${response.status}\nPayload: ${payload}`, false, true);
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    updateResults('waf-results', 'Path Traversal Test', 
+                        `❌ ERROR: ${error.message}`, true);
+                });
+        }
+
+        function testBadUserAgent() {
+            showLoading();
+            
+            fetch('/api/status', {
+                headers: {'User-Agent': 'badbot'}
+            })
+                .then(response => {
+                    hideLoading();
+                    if (response.status === 403) {
+                        updateResults('waf-results', 'Bad User Agent Test', 
+                            `✅ SUCCESS: WAF blocked the bad user agent!\nStatus: ${response.status} Forbidden\nUser-Agent: badbot`, false);
+                    } else {
+                        updateResults('waf-results', 'Bad User Agent Test', 
+                            `⚠️ WARNING: Request was not blocked by WAF\nStatus: ${response.status}\nUser-Agent: badbot`, false, true);
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    updateResults('waf-results', 'Bad User Agent Test', 
+                        `❌ ERROR: ${error.message}`, true);
+                });
+        }
+
+        function testAdminPath() {
+            showLoading();
+            
+            fetch('/admin')
+                .then(response => {
+                    hideLoading();
+                    if (response.status === 403) {
+                        updateResults('waf-results', 'Admin Path Test', 
+                            `✅ SUCCESS: WAF blocked access to admin path!\nStatus: ${response.status} Forbidden\nPath: /admin`, false);
+                    } else {
+                        updateResults('waf-results', 'Admin Path Test', 
+                            `⚠️ WARNING: Admin path was not blocked by WAF\nStatus: ${response.status}\nPath: /admin`, false, true);
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    updateResults('waf-results', 'Admin Path Test', 
+                        `❌ ERROR: ${error.message}`, true);
+                });
+        }
+
+        function testRateLimiting() {
+            showLoading();
+            const promises = [];
+            const startTime = Date.now();
+            
+            // Make 100 rapid requests
+            for (let i = 0; i < 100; i++) {
+                promises.push(
+                    fetch('/api/data')
+                        .then(response => ({ status: response.status, index: i }))
+                        .catch(() => ({ status: 0, index: i }))
+                );
+            }
+            
+            Promise.allSettled(promises)
+                .then(results => {
+                    hideLoading();
+                    const endTime = Date.now();
+                    const duration = endTime - startTime;
+                    
+                    const successful = results.filter(r => r.value && r.value.status === 200).length;
+                    const blocked = results.filter(r => r.value && r.value.status === 403).length;
+                    const errors = results.filter(r => r.status === 'rejected' || (r.value && r.value.status === 0)).length;
+                    
+                    updateResults('waf-results', 'Rate Limiting Test', 
+                        `Rate Limiting Test Results:\n` +
+                        `Total Requests: 100\n` +
+                        `Successful: ${successful}\n` +
+                        `Blocked (403): ${blocked}\n` +
+                        `Errors: ${errors}\n` +
+                        `Duration: ${duration}ms\n` +
+                        `${blocked > 0 ? '✅ SUCCESS: Rate limiting is working!' : '⚠️ WARNING: No rate limiting detected'}`, 
+                        false, blocked === 0);
+                });
+        }
+
+        function testNormalRequest() {
+            showLoading();
+            
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    updateResults('waf-results', 'Normal Request Test', 
+                        `✅ SUCCESS: Normal request processed successfully!\n` +
+                        `Status: ${data.status}\n` +
+                        `Instance: ${data.instance_id}\n` +
+                        `Timestamp: ${data.timestamp}`, false);
+                })
+                .catch(error => {
+                    hideLoading();
+                    updateResults('waf-results', 'Normal Request Test', 
+                        `❌ ERROR: ${error.message}`, true);
+                });
+        }
+
+        // Load Balancer Testing Functions
+        function refreshPage() {
+            location.reload();
+        }
+
+        function makeMultipleRequests(count) {
+            showLoading();
+            const promises = [];
+            const startTime = Date.now();
+            
+            for (let i = 0; i < count; i++) {
+                promises.push(
+                    fetch('/api/instance-info')
+                        .then(response => response.json())
+                        .then(data => data.instance_id)
+                        .catch(() => 'error')
+                );
+            }
+            
+            Promise.all(promises)
+                .then(instanceIds => {
+                    hideLoading();
+                    const endTime = Date.now();
+                    const duration = endTime - startTime;
+                    
+                    const counts = {};
+                    instanceIds.forEach(id => {
+                        counts[id] = (counts[id] || 0) + 1;
+                    });
+                    
+                    const uniqueInstances = Object.keys(counts).filter(id => id !== 'error').length;
+                    const avgResponseTime = duration / count;
+                    
+                    updateResults('lb-results', `Load Balancer Test (${count} requests)`, 
+                        `Load Distribution Results:\n` +
+                        `Total Requests: ${count}\n` +
+                        `Unique Instances: ${uniqueInstances}\n` +
+                        `Average Response Time: ${avgResponseTime.toFixed(2)}ms\n` +
+                        `Duration: ${duration}ms\n\n` +
+                        `Instance Distribution:\n${JSON.stringify(counts, null, 2)}\n\n` +
+                        `${uniqueInstances > 1 ? '✅ SUCCESS: Load balancing is working!' : '⚠️ INFO: Only one instance responding'}`, 
+                        false, uniqueInstances <= 1);
+                });
+        }
+
+        function testLoadBalancerHealth() {
+            showLoading();
+            
+            fetch('/health')
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    updateResults('lb-results', 'Health Check Test', 
+                        `✅ SUCCESS: Health check passed!\n` +
+                        `Status: ${data.status}\n` +
+                        `Instance: ${data.instance_id}\n` +
+                        `Service: ${data.service}\n` +
+                        `Timestamp: ${data.timestamp}`, false);
+                })
+                .catch(error => {
+                    hideLoading();
+                    updateResults('lb-results', 'Health Check Test', 
+                        `❌ ERROR: Health check failed - ${error.message}`, true);
+                });
+        }
+
+        // Performance Testing Functions
+        function performanceTest(concurrency) {
+            showLoading();
+            const promises = [];
+            const startTime = Date.now();
+            
+            for (let i = 0; i < concurrency; i++) {
+                promises.push(
+                    fetch('/api/load-test')
+                        .then(response => {
+                            const responseTime = Date.now() - startTime;
+                            return { status: response.status, responseTime };
+                        })
+                        .catch(error => ({ status: 0, responseTime: Date.now() - startTime, error: error.message }))
+                );
+            }
+            
+            Promise.all(promises)
+                .then(results => {
+                    hideLoading();
+                    const endTime = Date.now();
+                    const totalDuration = endTime - startTime;
+                    
+                    const successful = results.filter(r => r.status === 200).length;
+                    const failed = results.filter(r => r.status !== 200).length;
+                    const avgResponseTime = results.reduce((sum, r) => sum + r.responseTime, 0) / results.length;
+                    const minResponseTime = Math.min(...results.map(r => r.responseTime));
+                    const maxResponseTime = Math.max(...results.map(r => r.responseTime));
+                    
+                    updateResults('perf-results', `Performance Test (${concurrency} concurrent)`, 
+                        `Performance Test Results:\n` +
+                        `Concurrency: ${concurrency}\n` +
+                        `Successful Requests: ${successful}\n` +
+                        `Failed Requests: ${failed}\n` +
+                        `Total Duration: ${totalDuration}ms\n` +
+                        `Average Response Time: ${avgResponseTime.toFixed(2)}ms\n` +
+                        `Min Response Time: ${minResponseTime}ms\n` +
+                        `Max Response Time: ${maxResponseTime}ms\n` +
+                        `Requests/Second: ${(concurrency / (totalDuration / 1000)).toFixed(2)}\n\n` +
+                        `${successful === concurrency ? '✅ All requests successful!' : '⚠️ Some requests failed'}`, 
+                        false, failed > 0);
+                });
+        }
+
+        function getMetrics() {
+            showLoading();
+            
+            fetch('/api/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    updateResults('perf-results', 'System Metrics', 
+                        `System Metrics:\n` +
+                        `Instance: ${data.instance_id}\n` +
+                        `CPU Usage: ${data.metrics.cpu_usage}\n` +
+                        `Memory Usage: ${data.metrics.memory_usage}\n` +
+                        `Disk Usage: ${data.metrics.disk_usage}\n` +
+                        `Network I/O: ${data.metrics.network_io}\n` +
+                        `Timestamp: ${data.timestamp}\n\n` +
+                        `Note: Detailed metrics require additional monitoring tools`, false);
+                })
+                .catch(error => {
+                    hideLoading();
+                    updateResults('perf-results', 'System Metrics', 
+                        `❌ ERROR: Failed to get metrics - ${error.message}`, true);
+                });
+        }
+
+        // Auto-refresh timestamp every 30 seconds
+        setInterval(() => {
+            document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        }, 30000);
+    </script>
+</body>
+</html>
