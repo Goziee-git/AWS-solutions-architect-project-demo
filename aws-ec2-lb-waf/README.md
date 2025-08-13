@@ -11,6 +11,7 @@ This project demonstrates a complete AWS architecture using:
 ```
 Internet → WAF → Application Load Balancer → EC2 Instances (Multi-AZ)
 ```
+![generated-diagrams](generated-diagrams/aws_ec2_alb_waf_architecture.png)
 
 ## Components
 
