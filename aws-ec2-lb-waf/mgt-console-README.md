@@ -133,6 +133,11 @@ Internet → WAF → Application Load Balancer → EC2 Instances (Multi-AZ)
    - **Type**: SSH, **Port**: 22, **Source**: Your IP address
 3. Click **Create security group**
 
+### NOTE
+In the case where you intend to connect to the ec2-instances in the private subnet, edit the inbound rule for the private ec2 instances in the private subnet to include the security group of the bastion Host. This will allow you to connect to the private ec2 instances from the bastion host.
+Note: copy the SSH key pair file into the bastion host and use the private ip address of the ec2-instances in the private subnet to connect to it:
+```[within-the-bastion-host]$ scp -i public-key-pair.pem hostname@private-ip-address```
+
 ---
 
 ## Step 3: Create Launch Template

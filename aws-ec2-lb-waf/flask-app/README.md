@@ -156,16 +156,105 @@ Access the web interface at `http://your-alb-dns/` to use the interactive testin
 ## Configuration
 
 ### Environment Variables
-- `PORT`: Application port (default: 8080)
-- `HOST`: Bind address (default: 0.0.0.0)
-- `DEBUG`: Enable debug mode (default: False)
 
-### Systemd Service Configuration
-Edit `/etc/systemd/system/webapp.service` to modify:
-- User/Group
-- Working directory
-- Environment variables
-- Restart policies
+The application uses environment variables for configuration. This is the recommended approach for production deployments.
+
+#### Required Environment Variables
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `SECRET_KEY` | **CRITICAL**: Flask secret key for sessions and CSRF | `demo-secret-key-change-in-production` | `your-super-secure-random-key` |
+| `DEBUG` | Enable Flask debug mode | `False` | `False` |
+| `PORT` | Application port | `8080` | `8080` |
+| `HOST` | Bind interface | `0.0.0.0` | `0.0.0.0` |
+
+#### Optional Environment Variables
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `ENVIRONMENT` | Deployment environment | `production` | `production` |
+| `AWS_REGION` | AWS region | `us-east-1` | `us-east-1` |
+| `LOG_LEVEL` | Logging level | `INFO` | `INFO` |
+| `RATE_LIMIT_ENABLED` | Enable app-level rate limiting | `False` | `False` |
+| `MAX_CONTENT_LENGTH` | Max request size (bytes) | `16777216` | `16777216` |
+| `REQUEST_TIMEOUT` | Request timeout (seconds) | `30` | `30` |
+
+#### Setting Up Environment Variables
+
+**Method 1: Interactive Setup (Recommended)**
+```bash
+# Run the interactive setup script
+./setup-env.sh
+```
+
+**Method 2: Manual .env File**
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit the values
+nano .env
+
+# Load the environment
+source .env
+```
+
+**Method 3: Direct Export**
+```bash
+# Generate a secure secret key
+export SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+export DEBUG=False
+export PORT=8080
+export ENVIRONMENT=production
+```
+
+**Method 4: Systemd Service with Environment File**
+```bash
+# Create .env file
+cp .env.example .env
+nano .env
+
+# Update service file to use environment file
+sudo nano /etc/systemd/system/webapp.service
+# Uncomment: EnvironmentFile=-/opt/flask-app/.env
+
+# Restart service
+sudo systemctl daemon-reload
+sudo systemctl restart webapp
+```
+
+#### Security Notes for Environment Variables
+
+⚠️ **CRITICAL SECURITY REQUIREMENTS:**
+
+1. **SECRET_KEY**: MUST be changed from default for production
+   ```bash
+   # Generate secure key
+   python3 -c "import secrets; print(secrets.token_hex(32))"
+   ```
+
+2. **DEBUG**: MUST be `False` in production
+3. **File Permissions**: Set `.env` file permissions to 600
+   ```bash
+   chmod 600 .env
+   ```
+
+4. **Version Control**: Never commit `.env` files (already in `.gitignore`)
+
+#### AWS Systems Manager Parameter Store (Production Alternative)
+
+For production deployments, consider using AWS Systems Manager Parameter Store:
+
+```bash
+# Store parameters
+aws ssm put-parameter --name "/webapp/SECRET_KEY" --value "your-secret-key" --type "SecureString"
+aws ssm put-parameter --name "/webapp/DEBUG" --value "False" --type "String"
+
+# Retrieve in application (modify app.py)
+import boto3
+ssm = boto3.client('ssm')
+secret_key = ssm.get_parameter(Name='/webapp/SECRET_KEY', WithDecryption=True)['Parameter']['Value']
+```
 
 ## Monitoring
 

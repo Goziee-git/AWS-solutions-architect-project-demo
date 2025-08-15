@@ -25,27 +25,63 @@ Internet → WAF → Application Load Balancer → EC2 Instances (Multi-AZ)
 
 ```
 aws-ec2-lb-waf/
-├── infrastructure/
-│   ├── vpc.tf                 # VPC, subnets, gateways
-│   ├── security-groups.tf     # Security group rules
-│   ├── ec2.tf                 # EC2 instances and user data
-│   ├── load-balancer.tf       # ALB configuration
-│   ├── waf.tf                 # WAF rules and associations
-│   ├── outputs.tf             # Output values
-│   └── variables.tf           # Input variables
-├── scripts/
-│   ├── user-data.sh           # EC2 initialization script
-│   └── test-setup.py          # Testing and validation script
-├── tests/
-│   ├── test-waf-rules.py      # WAF rule testing
-│   ├── test-load-balancer.py  # Load balancer testing
-│   └── test-connectivity.py   # General connectivity tests
-└── docs/
-    ├── deployment-guide.md    # Step-by-step deployment
-    └── testing-guide.md       # How to test the setup
+├── flask-app/                 # Web application for testing
+│   ├── app.py                # Flask application
+│   ├── run.py                # Application runner
+│   ├── requirements.txt      # Python dependencies
+│   ├── templates/            # HTML templates
+│   └── README.md            # Flask app documentation
+├── infrastructure/           # Terraform infrastructure code
+│   ├── vpc.tf               # VPC, subnets, gateways
+│   ├── security-groups.tf   # Security group rules
+│   ├── ec2.tf               # EC2 instances and user data
+│   ├── load-balancer.tf     # ALB configuration
+│   ├── waf.tf               # WAF rules and associations
+│   ├── outputs.tf           # Output values
+│   └── variables.tf         # Input variables
+├── scripts/                  # Utility and deployment scripts
+│   ├── user-data.sh         # EC2 initialization script
+│   └── test-setup.py        # Testing and validation script
+├── tests/                    # Test suites
+│   ├── test-waf-rules.py    # WAF rule testing
+│   ├── test-load-balancer.py # Load balancer testing
+│   └── test-connectivity.py # General connectivity tests
+├── local-run-README.md      # Local development guide
+└── mgt-console-README.md    # AWS Management Console guide
 ```
 
 ## Quick Start
+
+### Local Development
+
+For local testing and development:
+
+**Option 1: Quick Start (Recommended)**
+```bash
+# Navigate to project directory
+cd aws-ec2-lb-waf
+
+# Run the startup script
+./start-local.sh
+```
+
+**Option 2: Manual Setup**
+```bash
+# Create and activate virtual environment
+python3 -m venv aws-ec2-venv
+source aws-ec2-venv/bin/activate
+
+# Install dependencies and run locally
+cd flask-app
+pip install -r requirements.txt
+python app.py
+```
+
+Visit http://localhost:8080 to access the application.
+
+📖 **For detailed local development instructions, see [local-run-README.md](local-run-README.md)**
+
+### AWS Deployment
 
 1. **Deploy Infrastructure**:
    ```bash

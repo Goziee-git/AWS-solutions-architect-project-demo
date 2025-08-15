@@ -1,24 +1,105 @@
 [Unit]
 Description=EC2 ALB WAF Demo Web Application
 After=network.target
+Documentation=file:///opt/flask-app/README.md
 
 [Service]
 Type=simple
 User=ec2-user
 Group=ec2-user
 WorkingDirectory=/opt/flask-app
+
+# Environment file (optional) - uncomment to use .env file
+# EnvironmentFile=-/opt/flask-app/.env
+
+# Default environment variables
 Environment=PATH=/usr/bin:/usr/local/bin
 Environment=PORT=8080
 Environment=HOST=0.0.0.0
 Environment=DEBUG=False
+Environment=ENVIRONMENT=production
+Environment=LOG_LEVEL=INFO
+
+# CRITICAL: Set a secure SECRET_KEY for production
+# Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
+# Environment=SECRET_KEY=your-super-secure-random-secret-key-here
+
+# Optional: AWS region for CloudWatch integration
+# Environment=AWS_REGION=us-east-1
+
+# Optional: Rate limiting configuration
+# Environment=RATE_LIMIT_ENABLED=False
+
+# Optional: Request size and timeout limits
+# Environment=MAX_CONTENT_LENGTH=16777216
+# Environment=REQUEST_TIMEOUT=30
+
+# Application startup
 ExecStart=/usr/bin/python3 /opt/flask-app/run.py
+
+# Restart configuration
 Restart=always
 RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
 
-# Logging
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/flask-app
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging configuration
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=webapp
 
+# Health check (systemd will restart if process exits)
+# The application's /health endpoint is used by ALB
+# Systemd monitors the process itself
+
 [Install]
 WantedBy=multi-user.target
+
+# =============================================================================
+# USAGE INSTRUCTIONS
+# =============================================================================
+
+# Installation:
+# 1. Copy this file: sudo cp webapp.service /etc/systemd/system/
+# 2. Reload systemd: sudo systemctl daemon-reload
+# 3. Enable service: sudo systemctl enable webapp
+# 4. Start service: sudo systemctl start webapp
+
+# Configuration Methods:
+
+# Method 1: Edit environment variables directly in this file
+# Uncomment and modify the Environment= lines above
+
+# Method 2: Use environment file (recommended)
+# 1. Create .env file: cp .env.example .env
+# 2. Edit .env with your values
+# 3. Uncomment the EnvironmentFile line above
+# 4. Reload and restart: sudo systemctl daemon-reload && sudo systemctl restart webapp
+
+# Method 3: Use systemd override file
+# 1. Create override: sudo systemctl edit webapp
+# 2. Add environment variables in the editor
+# 3. Save and restart service
+
+# Monitoring:
+# - Status: sudo systemctl status webapp
+# - Logs: sudo journalctl -u webapp -f
+# - Follow logs: sudo journalctl -u webapp --since "1 hour ago"
+
+# Security Notes:
+# - Service runs as ec2-user (non-root)
+# - Limited file system access
+# - No new privileges allowed
+# - Private temporary directory
+# - Resource limits applied
