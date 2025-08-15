@@ -1,0 +1,28 @@
+# terraform.tfvars.example
+# Copy this file to terraform.tfvars and customize the values
+
+# Project Configuration
+project_name = "aws-simple-architecture"
+environment  = "dev"
+owner        = "your-name"
+
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Network Configuration
+vpc_cidr            = "10.0.0.0/16"
+public_subnet_cidr  = "10.0.1.0/24"
+private_subnet_cidr = "10.0.2.0/24"
+
+# EC2 Configuration
+instance_type = "t2.micro"
+key_pair_name = "your-key-pair-name"  # REQUIRED: Change this to your key pair name
+
+# Security Configuration (Optional)
+# Restrict SSH access to your IP for better security
+# allowed_ssh_cidr = "YOUR.IP.ADDRESS/32"  # Uncomment and set your IP
+# allowed_http_cidr = "0.0.0.0/0"         # Allow HTTP from anywhere
+
+# Feature Flags (Optional)
+# enable_detailed_monitoring    = false
+# enable_termination_protection = false
