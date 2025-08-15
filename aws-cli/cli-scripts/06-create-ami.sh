@@ -15,6 +15,45 @@ if [ -z "$VPC_ID" ] || [ -z "$PUBLIC_SUBNET_ID" ] || [ -z "$SECURITY_GROUP_ID" ]
     exit 1
 fi
 
+# Create key pair if it doesn't exist
+log_info "Checking and creating key pair if needed..."
+if ! aws ec2 describe-key-pairs --key-names "$KEY_PAIR_NAME" --region $AWS_REGION &> /dev/null; then
+    log_info "Key pair '$KEY_PAIR_NAME' does not exist. Creating it..."
+    
+    # Create the key pair and save the private key
+    aws ec2 create-key-pair \
+        --key-name "$KEY_PAIR_NAME" \
+        --region $AWS_REGION \
+        --tag-specifications "ResourceType=key-pair,Tags=[{$TAG_PROJECT},{$TAG_ENVIRONMENT},{$TAG_OWNER},{Key=Name,Value=${PROJECT_NAME}-keypair}]" \
+        --query 'KeyMaterial' \
+        --output text > "${KEY_PAIR_NAME}.pem"
+    
+    if [ $? -eq 0 ]; then
+        # Set proper permissions for the private key
+        chmod 400 "${KEY_PAIR_NAME}.pem"
+        log_success "Key pair '$KEY_PAIR_NAME' created successfully"
+        log_info "Private key saved as: ${KEY_PAIR_NAME}.pem"
+        log_warning "Keep this private key file secure and do not share it!"
+        
+        # Update the key pair path in variables
+        export KEY_PAIR_PATH="$(pwd)/${KEY_PAIR_NAME}.pem"
+        sed -i "/^export KEY_PAIR_NAME=/a export KEY_PAIR_PATH=\"$(pwd)/${KEY_PAIR_NAME}.pem\"" "$(dirname "$0")/variables.sh"
+    else
+        log_error "Failed to create key pair"
+        exit 1
+    fi
+else
+    log_success "Key pair '$KEY_PAIR_NAME' already exists"
+    # Check if private key file exists locally
+    if [ -f "${KEY_PAIR_NAME}.pem" ]; then
+        export KEY_PAIR_PATH="$(pwd)/${KEY_PAIR_NAME}.pem"
+        log_info "Private key file found: ${KEY_PAIR_NAME}.pem"
+    else
+        log_warning "Key pair exists in AWS but private key file not found locally"
+        log_info "If you need to connect to instances, ensure you have the private key file"
+    fi
+fi
+
 # User data script for instance configuration
 USER_DATA_SCRIPT=$(cat << 'EOF'
 #!/bin/bash

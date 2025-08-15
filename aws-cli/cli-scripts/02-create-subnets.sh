@@ -16,10 +16,11 @@ if [ -z "$VPC_ID" ]; then
 fi
 
 # Verify VPC exists
-if ! aws ec2 describe-vpcs --vpc-ids "$VPC_ID" --region $AWS_REGION &> /dev/null; then
-    log_error "VPC $VPC_ID does not exist"
-    exit 1
-fi
+#if ! aws ec2 describe-vpcs --vpc-ids "$VPC_ID" --region $AWS_REGION &> /dev/null; then
+ 
+#    log_error "VPC $VPC_ID does not exist"
+#    exit 1
+#fi
 
 # Create Public Subnet
 log_info "Creating public subnet with CIDR $PUBLIC_SUBNET_CIDR in AZ $AVAILABILITY_ZONE..."

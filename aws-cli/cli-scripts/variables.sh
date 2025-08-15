@@ -19,6 +19,7 @@ export PRIVATE_SUBNET_CIDR="10.0.2.0/24"
 # EC2 Configuration
 export INSTANCE_TYPE="t2.micro"
 export KEY_PAIR_NAME="my-key-pair"  # Change this to your key pair name
+export KEY_PAIR_PATH=""  # Will be set when key pair is created
 
 # AMI Configuration (Amazon Linux 2 - will be updated dynamically)
 export BASE_AMI_ID="ami-0c02fb55956c7d316"  # Amazon Linux 2 in us-east-1
@@ -98,16 +99,52 @@ get_latest_ami() {
     fi
 }
 
-# Verify key pair exists
+# Create key pair if it doesn't exist
+create_key_pair() {
+    log_info "Creating key pair '$KEY_PAIR_NAME'..."
+    
+    # Create the key pair and save the private key
+    aws ec2 create-key-pair \
+        --key-name "$KEY_PAIR_NAME" \
+        --region $AWS_REGION \
+        --tag-specifications "ResourceType=key-pair,Tags=[{$TAG_PROJECT},{$TAG_ENVIRONMENT},{$TAG_OWNER},{Key=Name,Value=${PROJECT_NAME}-keypair}]" \
+        --query 'KeyMaterial' \
+        --output text > "${KEY_PAIR_NAME}.pem"
+    
+    if [ $? -eq 0 ]; then
+        # Set proper permissions for the private key
+        chmod 400 "${KEY_PAIR_NAME}.pem"
+        export KEY_PAIR_PATH="$(pwd)/${KEY_PAIR_NAME}.pem"
+        log_success "Key pair '$KEY_PAIR_NAME' created successfully"
+        log_info "Private key saved as: ${KEY_PAIR_NAME}.pem"
+        log_warning "Keep this private key file secure and do not share it!"
+        return 0
+    else
+        log_error "Failed to create key pair"
+        return 1
+    fi
+}
+
+# Verify key pair exists or provide guidance
 check_key_pair() {
     log_info "Checking if key pair '$KEY_PAIR_NAME' exists..."
     if aws ec2 describe-key-pairs --key-names "$KEY_PAIR_NAME" --region $AWS_REGION &> /dev/null; then
-        log_success "Key pair '$KEY_PAIR_NAME' exists"
+        log_success "Key pair '$KEY_PAIR_NAME' exists in AWS"
+        
+        # Check if private key file exists locally
+        if [ -f "${KEY_PAIR_NAME}.pem" ]; then
+            export KEY_PAIR_PATH="$(pwd)/${KEY_PAIR_NAME}.pem"
+            log_success "Private key file found: ${KEY_PAIR_NAME}.pem"
+        else
+            log_warning "Key pair exists in AWS but private key file not found locally"
+            log_info "If you need to connect to instances, ensure you have the private key file"
+        fi
     else
-        log_error "Key pair '$KEY_PAIR_NAME' does not exist"
-        log_info "Create it with: aws ec2 create-key-pair --key-name $KEY_PAIR_NAME --query 'KeyMaterial' --output text > ${KEY_PAIR_NAME}.pem"
-        log_info "Then set permissions: chmod 400 ${KEY_PAIR_NAME}.pem"
-        exit 1
+        log_warning "Key pair '$KEY_PAIR_NAME' does not exist in AWS"
+        log_info "It will be created automatically when running the AMI creation script"
+        log_info "Or create it manually with:"
+        log_info "  aws ec2 create-key-pair --key-name $KEY_PAIR_NAME --query 'KeyMaterial' --output text > ${KEY_PAIR_NAME}.pem"
+        log_info "  chmod 400 ${KEY_PAIR_NAME}.pem"
     fi
 }
 
@@ -136,6 +173,7 @@ show_config() {
     echo "Private Subnet CIDR: $PRIVATE_SUBNET_CIDR"
     echo "Instance Type: $INSTANCE_TYPE"
     echo "Key Pair: $KEY_PAIR_NAME"
+    echo "Key Pair Path: ${KEY_PAIR_PATH:-'Not set'}"
     echo "Base AMI ID: $BASE_AMI_ID"
     echo -e "${BLUE}================================${NC}\n"
 }
