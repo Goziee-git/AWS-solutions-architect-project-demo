@@ -125,3 +125,22 @@ variable "enable_termination_protection" {
   type        = bool
   default     = false
 }
+
+# MySQL DB variables
+variable "db_name" {
+  description = "Name of the MySQL database"
+  type        = string
+  default     = "appdb"
+}
+
+variable "db_username" {
+  description = "Master username for MySQL"
+  type        = string
+  default     = "admin"
+}
+
+variable "db_password" {
+  description = "Master password for MySQL"
+  type        = string
+  sensitive   = true
+}

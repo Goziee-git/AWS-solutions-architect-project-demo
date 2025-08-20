@@ -5,14 +5,23 @@ locals {
   user_data = base64encode(templatefile("${path.module}/user_data.sh", {
     project_name = var.project_name
     environment  = var.environment
+    vpc_cidr     = var.vpc_cidr
   }))
+}
+
+resource "aws_key_pair" "web_key" {
+  key_name   = var.key_pair_name
+  public_key = file("~/.ssh/terraform-keypair.pub")
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-keypair"
+  })
 }
 
 # Create EC2 instance
 resource "aws_instance" "web_server" {
   ami                     = data.aws_ami.amazon_linux.id
   instance_type           = var.instance_type
-  key_name                = var.key_pair_name
+  key_name                = aws_key_pair.web_key.key_name
   vpc_security_group_ids  = [aws_security_group.web_server.id]
   subnet_id               = aws_subnet.public.id
   user_data               = local.user_data
